@@ -30,6 +30,10 @@ public class ServerInstance extends Thread{
 
             this.inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.outToClient = new DataOutputStream(socket.getOutputStream());
+
+            System.out.println("Server instance created...");
+            sendToClient("Server Connected...");
+            System.out.println("FROM Client: "+ readFromClient());
         } catch (Exception e) {
             e.printStackTrace();
             socket.close();
@@ -41,11 +45,10 @@ public class ServerInstance extends Thread{
     public void run() {
         while (run) {
             try {
-                sendToClient("Server Connected...");
-                System.out.println("FROM Client: "+ readFromClient());
-
                 String[] cmd = readFromClient().split(" ");
-                if(cmd[0] != null){
+                if(cmd[0] == null) {
+                    cmd[0] = "ERROR: NULL";
+                }
                     switch (cmd[0]){
                         case "DONE":
                             done();
@@ -78,12 +81,9 @@ public class ServerInstance extends Thread{
                             //stor
                             break;
                         default:
-                            sendToClient("From Server: Invalid Command");
+                            System.out.println(cmd[0]);
+                            sendToClient("From Server: -Non RFC command");
                     }
-                }
-
-
-
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -104,6 +104,7 @@ public class ServerInstance extends Thread{
      * @throws Exception socket error
      */
      private void type(String s) throws Exception {
+         System.out.println(s);
          switch (s) {
              case "A" -> sendToClient("+Using Ascii mode");
              case "B" -> sendToClient("+Using Binary mode");
@@ -118,7 +119,7 @@ public class ServerInstance extends Thread{
      * @throws Exception which will close server anyway
      */
     private void done() throws Exception {
-        sendToClient("+Closing connection. A total of " + mbSent/1000 + "kB was transferred.\0");
+        sendToClient("+Closing connection. A total of " + mbSent/1000 + "kB was transferred.\n");
         System.out.println("Server instance closed <>");
         socket.close();
         run = false;
@@ -139,7 +140,7 @@ public class ServerInstance extends Thread{
      * @param text to send to client
      */
     private void sendToClient(String text) throws Exception {
-        outToClient.writeBytes(text + "\0");
+        outToClient.writeBytes(text + "\n");
     }
 
 }

@@ -23,6 +23,11 @@ TCPClient(Socket socket) throws IOException {
             //sets ASCII streams
             this.outToServer = new DataOutputStream(socket.getOutputStream());
             this.inFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            System.out.println("Client Created");
+            sendToServer("Client Connected...");
+            System.out.println("FROM SERVER: "+ readFromServer());
+
         } catch (Exception e) {
             e.printStackTrace();
             socket.close();
@@ -36,14 +41,14 @@ TCPClient(Socket socket) throws IOException {
         // Initializes socket and streams
         while (run) {
             try{
-                sendToServer("Client Connected...");
-                String sentenance = inFromServer.readLine();
-                System.out.println("FROM SERVER: "+ sentenance);
-
                 System.out.print("Input command master: ");
-                String[] cmd = readCommand();
-            if(rfcCommand != null){
-                    switch (rfcCommand){
+                String cmdString = readCommand();
+                String[] cmd = cmdString.split(" ");
+
+            if(cmd[0] == null) {
+                cmd[0] = "ERROR. NULL";
+            }
+                    switch (cmd[0]){
                         case "DONE":
                             done();
                             break;
@@ -54,15 +59,20 @@ TCPClient(Socket socket) throws IOException {
                            // auth("PASS",commandArgs);
                             break;
                         case "TYPE":
-                           type(cmd);
+                           type(cmdString);
                             break;
                         case "LIST":
                            // list(commandArgs);
                             break;
                         default:
+                            //if command not found
+                            System.out.println("Input error: Invalid Command");
+                            System.out.println("Commands available: "
+                                    + "\"USER\", \"ACCT\", \"PASS\", \"TYPE\", \"LIST\","
+                                    + "\"CDIR\", \"KILL\", \"NAME\", \"DONE\", \"RETR\", \"STOR\"");
                             break;
                     }
-                }
+
             }catch(Exception e){
                 e.printStackTrace();
                 try { // If err closes server thread
@@ -81,9 +91,9 @@ TCPClient(Socket socket) throws IOException {
      * @param cmd that represents the arguements set by user
      * @throws Exception on server error
      */
-    private void type(String[] cmd) throws Exception {
-        sendToServer(cmd[0]+cmd[1]);
-        //System.out.println(readFromServer());
+    private void type(String cmd) throws Exception {
+        sendToServer(cmd);
+        System.out.println(readFromServer());
     }
 
     /**
@@ -92,7 +102,7 @@ TCPClient(Socket socket) throws IOException {
      */
     public void done() throws Exception{
         sendToServer("DONE");
-        //System.out.println(readFromServer());
+        System.out.println(readFromServer());
         socket.close();
         run = false;
     }
@@ -102,24 +112,11 @@ TCPClient(Socket socket) throws IOException {
      * @return command that has been read from user
      * @throws Exception server error
      */
-    public String[] readCommand() throws Exception{
+    public String readCommand() throws Exception{
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
         String input = bufferedReader.readLine();
-        String[] commands = input.split(" ");
-
-        for (String command : rfcCommands){
-            if (commands[0].equals(command)){
-                rfcCommand = command;
-                return commands;
-            }
-        }
-        //if command not found
-        System.out.println("Input error: Invalid Command");
-        System.out.println("Commands available: "
-                + "\"USER\", \"ACCT\", \"PASS\", \"TYPE\", \"LIST\","
-                + "\"CDIR\", \"KILL\", \"NAME\", \"DONE\", \"RETR\", \"STOR\"");
-
-        return null;
+        String command = input;
+        return command;
     }
 
     /**
@@ -137,6 +134,6 @@ TCPClient(Socket socket) throws IOException {
      * @param text text wished to send to server
      */
     private void sendToServer(String text) throws Exception {
-        outToServer.writeBytes(text + "\0");
+        outToServer.writeBytes(text + "\n");
     }
 }
