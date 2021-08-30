@@ -52,17 +52,20 @@ TCPClient(Socket socket) throws IOException {
                         case "DONE":
                             done();
                             break;
+                        case "USER":
                         case "ACCT":
-                            //auth("ACCT",commandArgs);
-                            break;
                         case "PASS":
-                           // auth("PASS",commandArgs);
-                            break;
                         case "TYPE":
-                           type(cmdString);
+                        case "KILL":
+                            processCMD(cmdString);
                             break;
+                        case "CDIR":
+                            cdir(cmdString);
                         case "LIST":
                            // list(commandArgs);
+                            break;
+                        case "NAME":
+                            name(cmdString);
                             break;
                         default:
                             //if command not found
@@ -86,12 +89,44 @@ TCPClient(Socket socket) throws IOException {
         }
     }
 
+    public void name(String s) throws  Exception {
+        sendToServer(s);
+        String response = readFromServer();
+        System.out.println(response);
+        if (response.equals("+File Exists")) {
+            boolean isProcessed = false;
+            String response2 = readFromServer();
+            while (!isProcessed) {
+                System.out.println(response2);
+                String cmdString = readCommand();
+                sendToServer(cmdString);
+                response2 = readFromServer();
+                System.out.println(response2);
+                if (!response2.equals("Please send TOBE followed by the new name")) {
+                    isProcessed = true;
+                }
+            }
+        }
+    }
+
     /**
-     *
-     * @param cmd that represents the arguements set by user
-     * @throws Exception on server error
+     * might get it's own functionality depending
+     * if I implement account password
+     * @param s
+     * @throws Exception
      */
-    private void type(String cmd) throws Exception {
+    public void cdir(String s) throws Exception{
+        sendToServer(s);
+        System.out.println(readFromServer());
+        // accessing restricted goes here
+    }
+
+    /**
+     * Typical send and receive response for client
+     * @param cmd
+     * @throws Exception
+     */
+    private void processCMD(String cmd) throws Exception{
         sendToServer(cmd);
         System.out.println(readFromServer());
     }

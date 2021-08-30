@@ -9,6 +9,15 @@ public class ServerInstance extends Thread{
     // Different flags for continuing with different activities
     boolean run = true;
 
+    // variables for Cmds
+    String serverDir = System.getProperty("user.dir") + "/src/server/dir"; // default directory
+    boolean isRetrieve = false; //for RETR cmd
+    String fileName = ""; //for SEND cmd
+
+    // Create account object to manage Accounts
+    Accounts accounts = new Accounts();
+
+
     String cmd;
 
     //Data Streams for ASCII and Binary
@@ -49,41 +58,57 @@ public class ServerInstance extends Thread{
                 if(cmd[0] == null) {
                     cmd[0] = "ERROR: NULL";
                 }
-                    switch (cmd[0]){
-                        case "DONE":
-                            done();
+                System.out.println(accounts.checkLogin());
+                // remember to revert this to !accounts
+                if(accounts.checkLogin()) {
+                    switch (cmd[0]) {
+                        case "USER":
+                            user(cmd[1]);
+                            //auth("ACCT",commandArgs);
                             break;
                         case "ACCT":
+                            acct(cmd[1], true);
                             //auth("ACCT",commandArgs);
                             break;
                         case "PASS":
+                            pass(cmd[1], true);
                             // auth("PASS",commandArgs);
-                            break;
-                        case "TYPE":
-                            type(cmd[1]);
-                            break;
-                        case "LIST":
-                            // list(commandArgs);
-                            break;
-                        case "CDIR":
-                            // cdir(commandArgs);
-                            break;
-                        case "KILL":
-                            // kill(commandArgs);
-                            break;
-                        case "name":
-                            //name
-                            break;
-                        case "RETR":
-                            //retr
-                            break;
-                        case "STOR":
-                            //stor
                             break;
                         default:
                             System.out.println(cmd[0]);
-                            sendToClient("From Server: -Non RFC command");
+                            sendToClient("-Please Login");
                     }
+                }else{
+                        switch (cmd[0]) {
+                            case "DONE":
+                                done();
+                                break;
+                            case "TYPE":
+                                type(cmd[1]);
+                                break;
+                            case "LIST":
+                                // list(commandArgs);
+                                break;
+                            case "CDIR":
+                                cdir(cmd[1]);
+                                break;
+                            case "KILL":
+                                kill(cmd[1]);
+                                break;
+                            case "NAME":
+                                name(cmd[1]);
+                                break;
+                            case "RETR":
+                                retr(cmd[1]);
+                                break;
+                            case "STOR":
+                                //stor
+                                break;
+                            default:
+                                System.out.println(cmd[0]);
+                                sendToClient("-Non RFC command");
+                    }
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -95,6 +120,140 @@ public class ServerInstance extends Thread{
                     exception.printStackTrace();
                 }
             }
+        }
+    }
+
+    private void retr(String s) throws Exception{
+
+    }
+    /**
+     * Kills specified file
+     * @param s
+     * @throws Exception
+     */
+    private void kill(String s) throws Exception{
+        File file = new File(serverDir + "/" + s );
+        if (file.delete()) {
+            sendToClient("+File deleted successfully");
+        } else {
+            sendToClient("-Not deleted because file does not exist");
+        }
+    }
+
+    /**
+     * renames file
+     * @param s
+     * @throws Exception
+     */
+    public void name(String s) throws  Exception{
+        File file = new File(serverDir + "/" + s);
+        if (file.exists()) {
+            sendToClient("+File Exists");
+            boolean isProcessed = false;
+            while(!isProcessed){
+                sendToClient("Please send TOBE followed by the new name");
+                String[] cmd = readFromClient().split(" ");
+                if(cmd[0].equals("TOBE")) {
+                    if (cmd[1] != "") {
+                        File fileRename = new File(serverDir + "/" + cmd[1]);
+                        file.renameTo(fileRename);
+                        sendToClient("+" + file + " renamed to " + fileRename);
+                    }else{
+                        sendToClient("-File wasn't renamed because Invalid file name provided");
+                    }
+                    isProcessed = true;
+                }
+            }
+        } else {
+            sendToClient("-Can't find " + file);
+        }
+    }
+
+    /**
+     * changes server directory
+     * @param s
+     * @throws Exception
+     */
+    public void cdir(String s) throws Exception{
+        String dir = serverDir + "/" + s;
+        File file = new File(dir);
+        if (!file.isDirectory()){
+            sendToClient("-Can't connect to directory because: Invalid Directory-" + dir);
+            return;
+        }
+        // checks for restricted directories
+//        if(s == "userAccounts" && !accounts.checkLogin()){
+//            sendToClient("+directory ok, send account/password");
+//            while(!accounts.checkLogin()) {
+//                String[] cmd = readFromClient().split(" ");
+//                while (cmd[0] != "ACCT" || cmd[0] != "PASS") {
+//                    cmd = readFromClient().split(" ");
+//                }
+//                switch(cmd[0]){
+//                    case "ACCT":
+//                        acct(cmd[1],"CDIR");
+//                    case "PASS":
+//                        pass(cmd[1],"CDIR");
+//                }
+//            }
+//
+//        }
+        serverDir = dir;
+        sendToClient("!Changed working dir to " + dir);
+    }
+
+    /**
+     *  takes in command and returns based
+     *  on account authentication
+     * @param s
+     * @throws Exception
+     */
+    public void acct(String s, boolean forLogin) throws Exception{
+        if(forLogin) {
+            if (accounts.selectAccount(s)) {
+                if (accounts.checkLogin()) {
+                    sendToClient("! Account valid, logged-in");
+
+                } else {
+                    sendToClient("+Account valid, send password");
+                }
+            } else {
+                sendToClient("-Invalid account, try again");
+            }
+        }
+    }
+
+    /**
+     *  sends to server depending on
+     *  password authentication
+     *  if second argument is empty continues
+     * @param s
+     * @throws Exception
+     */
+    public void pass(String s,  boolean forLogin) throws Exception{
+        if(forLogin) {
+            if (accounts.enterPassword(s)) {
+                if (accounts.checkLogin()) {
+                    sendToClient("! Logged in");
+                } else {
+                    sendToClient("+Send account");
+                }
+            } else {
+                sendToClient("-Wrong password, try again");
+            }
+        }
+    }
+
+    /**
+     * takes in
+     * @param s
+     * @throws Exception
+     */
+    public void user(String s) throws Exception{
+        if(accounts.selectUser(s)){
+            sendToClient("+User-id valid, send account and password");
+        }else{
+            sendToClient("-Invalid user-id, try again");
         }
     }
 

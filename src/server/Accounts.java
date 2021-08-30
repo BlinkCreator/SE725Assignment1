@@ -9,12 +9,15 @@ public class Accounts {
     static Boolean isMatchingAccount = false;
     static Boolean isLoggedIn = false;
 
-    String[] users = {"Alex1", "Alexander22", "TheGreat333"};
+    String[] users = {"Alex1", "The22", "Great333"};
     String[] passwords = {"1", "22", "333"};
     String[] accounts = {"account1", "account2", "account3"};
 
     int userIndex = -1;
 
+    public boolean getIsUserSelected() {
+        return isUserSelected;
+    }
 
     public boolean selectUser(String user){
         List<String> usersList = Arrays.asList(users);
@@ -35,7 +38,7 @@ public class Accounts {
     }
 
     public boolean enterPassword(String password){
-        List<String> passwordsList = Arrays.asList(password);
+        List<String> passwordsList = Arrays.asList(passwords);
 
         if(passwordsList.contains(password) &&  userIndex == passwordsList.indexOf(password)){
             isMatchingPassword = true;
@@ -47,7 +50,7 @@ public class Accounts {
     }
 
     public boolean selectAccount(String account){
-        List<String> accountsList = Arrays.asList(account);
+        List<String> accountsList = Arrays.asList(accounts);
         if(accountsList.contains(account) && userIndex == accountsList.indexOf(account)){
             isMatchingAccount = true;
             return true;
@@ -66,7 +69,4 @@ public class Accounts {
             return false;
         }
     }
-
-
-
 }
