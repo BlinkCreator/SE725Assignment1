@@ -9,15 +9,20 @@ public class Accounts {
     static Boolean isMatchingAccount = false;
     static Boolean isLoggedIn = false;
 
-    String[] users = {"Alex1", "The22", "Great333"};
+    String[] users = {"Alex1", "The22", "Great333", "USERDEFAULT"};
     String[] passwords = {"1", "22", "333"};
     String[] accounts = {"account1", "account2", "account3"};
 
-    int userIndex = -1;
+    int userIndex = 3;
 
     public boolean getIsUserSelected() {
         return isUserSelected;
     }
+
+    public String getUser(){
+        return users[userIndex];
+    }
+
 
     public boolean selectUser(String user){
         List<String> usersList = Arrays.asList(users);

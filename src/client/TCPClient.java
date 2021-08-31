@@ -1,6 +1,8 @@
 package client;
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class TCPClient {
     boolean run = true;
@@ -8,12 +10,8 @@ public class TCPClient {
     DataOutputStream outToServer;
     BufferedReader inFromServer;
 
-    // all possible commands
-    private final String[] rfcCommands = new String[]{"USER", "ACCT", "PASS", "TYPE", "LIST", "CDIR", "KILL",
-            "NAME", "TOBE", "DONE", "RETR", "SEND", "STOP", "STOR"};
+    String clientDir = System.getProperty("user.dir") + File.separator +"src"+ File.separator +"client"+File.separator+"dir"; // default directory
 
-    // current stored command
-    private String rfcCommand = "";
 
 TCPClient(Socket socket) throws IOException {
 
@@ -57,15 +55,21 @@ TCPClient(Socket socket) throws IOException {
                         case "PASS":
                         case "TYPE":
                         case "KILL":
+                        case "CDIR":
                             processCMD(cmdString);
                             break;
-                        case "CDIR":
-                            cdir(cmdString);
+                            //cdir(cmdString);
                         case "LIST":
-                           // list(commandArgs);
+                            list(cmdString);
                             break;
                         case "NAME":
                             name(cmdString);
+                            break;
+                        case "RETR":
+                            retr(cmdString);
+                            break;
+                        case "STOR":
+                            stor(cmdString);
                             break;
                         default:
                             //if command not found
@@ -89,6 +93,88 @@ TCPClient(Socket socket) throws IOException {
         }
     }
 
+    private void stor(String s) throws Exception{
+        String[] args = s.split(" ");
+        String retrievePath = clientDir +File.separator + args[2];
+        File file = new File(retrievePath);
+        if(!file.exists()){
+           System.out.println("-File does not exist at " + retrievePath );
+           return;
+        }
+        sendToServer(s);
+        System.out.println(readFromServer());//response from STOR cmd
+        System.out.println(readFromServer());//ok waiting for file
+
+
+        boolean isProcessed = false;
+
+        while (!isProcessed) {
+            String cmdString = readCommand();
+            String[] sizeArgs = cmdString.split(" ");
+            String response = "";
+            if(sizeArgs[0].equals("SIZE")){
+                sendToServer(cmdString);
+                byte[] bytes = Files.readAllBytes(Paths.get(retrievePath));
+                String content = new String(bytes);
+                int byteSize = content.getBytes().length;
+                outToServer.write(byteSize);
+                outToServer.writeBytes(content);
+                outToServer.flush();
+                System.out.println(readFromServer());
+                isProcessed = true;
+
+            }
+        }
+    }
+    public void retr(String s) throws  Exception {
+        sendToServer(s);
+        String[] args = s.split(" ");
+        String response = readFromServer();
+        if (response.equals("-File doesn't exist")) {
+            System.out.println(response);
+            return;
+        }
+        boolean isProcessed = false;
+        int byteSize = Integer.parseInt(response);
+        System.out.println(byteSize);
+        while (!isProcessed) {
+            String cmdString = readCommand();
+            String response2 = null;
+            if(cmdString.equals("SEND")){
+                sendToServer(cmdString);
+
+                byte[] inBytes = new byte[byteSize];
+                for (int i = 0; i < byteSize; i++) {
+                    inBytes[i] = (byte) inFromServer.read();//retrieveSend.read();
+                }
+                FileOutputStream createdFile = new FileOutputStream(clientDir + File.separator + args[1]);
+                createdFile.write(inBytes);
+                createdFile.close();
+
+                response2 = readFromServer();
+                System.out.println(response2);
+            }else if(cmdString.equals("STOP")){
+                System.out.println(readFromServer());
+               isProcessed = true;
+            }
+            if (response2.equals("+File Sent")){
+                isProcessed = true;
+            }
+        }
+    }
+
+    private void list(String s) throws  Exception {
+        sendToServer(s);
+        boolean processList = false;
+        while(!processList){
+            String response = readFromServer();
+            System.out.println(response);
+            if(response == null || response.equals("") || response.equals("-Please Login")){
+               processList = true;
+            }
+        }
+    }
+
     public void name(String s) throws  Exception {
         sendToServer(s);
         String response = readFromServer();
@@ -96,8 +182,8 @@ TCPClient(Socket socket) throws IOException {
         if (response.equals("+File Exists")) {
             boolean isProcessed = false;
             String response2 = readFromServer();
+            System.out.println(response2);
             while (!isProcessed) {
-                System.out.println(response2);
                 String cmdString = readCommand();
                 sendToServer(cmdString);
                 response2 = readFromServer();
