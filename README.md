@@ -13,7 +13,7 @@ The following code is an implementation of a simple file transfered specified in
 
 
 
-The following test cases are covered by running the AutoClientTest.sh
-1.Successful log in then DONE
-2.Failed log in, then true log in, then change user, then DONE
+The following test cases are covered by running the AutoClientTest.sh<br>
+1.Successful log in then DONE<br>
+2.Failed log in, then true log in, then change user, then DONE<br>
 3.
