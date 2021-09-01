@@ -9,8 +9,9 @@ public class TCPClient {
     Socket socket;
     DataOutputStream outToServer;
     BufferedReader inFromServer;
+    BufferedReader inFromUser;
 
-    String clientDir = System.getProperty("user.dir") + File.separator +"src"+ File.separator +"client"+File.separator+"dir"; // default directory
+    String clientDir = System.getProperty("user.dir") + File.separator +"client"+File.separator+"dir"; // default directory
 
 
 TCPClient(Socket socket) throws IOException {
@@ -21,9 +22,8 @@ TCPClient(Socket socket) throws IOException {
             //sets ASCII streams
             this.outToServer = new DataOutputStream(socket.getOutputStream());
             this.inFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-            System.out.println("Client Created");
-            sendToServer("Client Connected...");
+            this.inFromUser = new BufferedReader(new InputStreamReader(System.in));
+            sendToServer("(opens connection to R)");
             System.out.println("FROM SERVER: "+ readFromServer());
 
         } catch (Exception e) {
@@ -39,46 +39,33 @@ TCPClient(Socket socket) throws IOException {
         // Initializes socket and streams
         while (run) {
             try{
-                System.out.print("Input command master: ");
-                String cmdString = readCommand();
+                System.out.print("Input command: ");
+                String cmdString = inFromUser.readLine();
+                if(cmdString == null){
+                   return;
+                }
                 String[] cmd = cmdString.split(" ");
 
             if(cmd[0] == null) {
                 cmd[0] = "ERROR. NULL";
             }
-                    switch (cmd[0]){
-                        case "DONE":
-                            done();
-                            break;
-                        case "USER":
-                        case "ACCT":
-                        case "PASS":
-                        case "TYPE":
-                        case "KILL":
-                        case "CDIR":
-                            processCMD(cmdString);
-                            break;
-                            //cdir(cmdString);
-                        case "LIST":
-                            list(cmdString);
-                            break;
-                        case "NAME":
-                            name(cmdString);
-                            break;
-                        case "RETR":
-                            retr(cmdString);
-                            break;
-                        case "STOR":
-                            stor(cmdString);
-                            break;
-                        default:
-                            //if command not found
-                            System.out.println("Input error: Invalid Command");
-                            System.out.println("Commands available: "
-                                    + "\"USER\", \"ACCT\", \"PASS\", \"TYPE\", \"LIST\","
-                                    + "\"CDIR\", \"KILL\", \"NAME\", \"DONE\", \"RETR\", \"STOR\"");
-                            break;
+                switch (cmd[0]) {
+                    case "DONE" -> done();
+                    case "USER", "ACCT", "PASS", "TYPE", "KILL", "CDIR" -> processCMD(cmdString);
+
+                    //cdir(cmdString);
+                    case "LIST" -> list(cmdString);
+                    case "NAME" -> name(cmdString);
+                    case "RETR" -> retr(cmdString);
+                    case "STOR" -> stor(cmdString);
+                    default -> {
+                        //if command not found
+                        System.out.println("Input error: Invalid Command");
+                        System.out.println("Commands available: "
+                                + "\"USER\", \"ACCT\", \"PASS\", \"TYPE\", \"LIST\","
+                                + "\"CDIR\", \"KILL\", \"NAME\", \"DONE\", \"RETR\", \"STOR\"");
                     }
+                }
 
             }catch(Exception e){
                 e.printStackTrace();
@@ -93,6 +80,12 @@ TCPClient(Socket socket) throws IOException {
         }
     }
 
+    /**
+     * For storing file on the serverDir that is
+     * found on the clientDir
+     * @param s APP NEW OR OLD for type of storing followed by fileName
+     * @throws Exception if socket error
+     */
     private void stor(String s) throws Exception{
         String[] args = s.split(" ");
         String retrievePath = clientDir +File.separator + args[2];
@@ -102,30 +95,43 @@ TCPClient(Socket socket) throws IOException {
            return;
         }
         sendToServer(s);
-        System.out.println(readFromServer());//response from STOR cmd
+
+        String response = readFromServer();
+        if (response.equals("-Non RFC command") || response.equals("-Please Login")) {
+            System.out.println(response);
+            return;
+        }
+
+        System.out.println(response);//response from STOR cmd
         System.out.println(readFromServer());//ok waiting for file
 
 
         boolean isProcessed = false;
 
         while (!isProcessed) {
-            String cmdString = readCommand();
+            String cmdString = inFromUser.readLine();
             String[] sizeArgs = cmdString.split(" ");
-            String response = "";
             if(sizeArgs[0].equals("SIZE")){
                 sendToServer(cmdString);
                 byte[] bytes = Files.readAllBytes(Paths.get(retrievePath));
-                String content = new String(bytes);
-                int byteSize = content.getBytes().length;
-                outToServer.write(byteSize);
-                outToServer.writeBytes(content);
+                int actualByteCount = bytes.length;
+                int byteCount = Integer.min(Integer.parseInt(sizeArgs[1]), actualByteCount);
+                sendToServer(String.valueOf(actualByteCount));
+
+                outToServer.write(bytes, 0, byteCount);
                 outToServer.flush();
                 System.out.println(readFromServer());
                 isProcessed = true;
-
             }
         }
     }
+
+    /**
+     *  for retr a specified file
+     *  followed by stop or send to go forward
+     * @param s fileName
+     * @throws Exception if socket error
+     */
     public void retr(String s) throws  Exception {
         sendToServer(s);
         String[] args = s.split(" ");
@@ -134,11 +140,16 @@ TCPClient(Socket socket) throws IOException {
             System.out.println(response);
             return;
         }
+        if (response.equals("-Non RFC command") || response.equals("-Please Login")) {
+            System.out.println(response);
+            return;
+        }
+
         boolean isProcessed = false;
         int byteSize = Integer.parseInt(response);
         System.out.println(byteSize);
         while (!isProcessed) {
-            String cmdString = readCommand();
+            String cmdString = inFromUser.readLine();
             String response2 = null;
             if(cmdString.equals("SEND")){
                 sendToServer(cmdString);
@@ -157,12 +168,17 @@ TCPClient(Socket socket) throws IOException {
                 System.out.println(readFromServer());
                isProcessed = true;
             }
-            if (response2.equals("+File Sent")){
+            if (response2 == null || response2.equals("+File Sent")){
                 isProcessed = true;
             }
         }
     }
 
+    /**
+     * For listing files at a dir
+     * @param s v or f for verbose or not followed by optional dir
+     * @throws Exception if socket Error
+     */
     private void list(String s) throws  Exception {
         sendToServer(s);
         boolean processList = false;
@@ -175,6 +191,12 @@ TCPClient(Socket socket) throws IOException {
         }
     }
 
+    /**
+     * Name command
+     * for renaming file on server side
+     * @param s name of file
+     * @throws Exception if socket error
+     */
     public void name(String s) throws  Exception {
         sendToServer(s);
         String response = readFromServer();
@@ -184,7 +206,7 @@ TCPClient(Socket socket) throws IOException {
             String response2 = readFromServer();
             System.out.println(response2);
             while (!isProcessed) {
-                String cmdString = readCommand();
+                String cmdString = inFromUser.readLine();
                 sendToServer(cmdString);
                 response2 = readFromServer();
                 System.out.println(response2);
@@ -196,21 +218,9 @@ TCPClient(Socket socket) throws IOException {
     }
 
     /**
-     * might get it's own functionality depending
-     * if I implement account password
-     * @param s
-     * @throws Exception
-     */
-    public void cdir(String s) throws Exception{
-        sendToServer(s);
-        System.out.println(readFromServer());
-        // accessing restricted goes here
-    }
-
-    /**
      * Typical send and receive response for client
-     * @param cmd
-     * @throws Exception
+     * @param cmd command from USER that needs to be processed with no special handling
+     * @throws Exception if socket error
      */
     private void processCMD(String cmd) throws Exception{
         sendToServer(cmd);
@@ -228,17 +238,6 @@ TCPClient(Socket socket) throws IOException {
         run = false;
     }
 
-    /**
-     *
-     * @return command that has been read from user
-     * @throws Exception server error
-     */
-    public String readCommand() throws Exception{
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-        String input = bufferedReader.readLine();
-        String command = input;
-        return command;
-    }
 
     /**
      * Used to read ASCII from server

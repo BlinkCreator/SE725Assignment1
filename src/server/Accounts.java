@@ -34,7 +34,6 @@ public class Accounts {
             isLoggedIn = false;
             isMatchingPassword = false;
 
-            System.out.println(user + (userIndex));
             return true;
         }else{
             isUserSelected = false;

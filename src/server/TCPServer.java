@@ -12,7 +12,6 @@ class TCPServer {
         ServerSocket welcomeSocket = new ServerSocket(6789);
 
         while (true) {
-            System.out.println("Creating New Server instance");
             Socket connectionSocket = welcomeSocket.accept();
             new ServerInstance(connectionSocket).start(); // starts a server instance for each client connection
         }

@@ -1,7 +1,6 @@
 package server;
 
 import java.io.*;
-import java.net.URI;
 import java.util.*;
 import java.net.Socket;
 import java.nio.file.*;
@@ -16,39 +15,26 @@ public class ServerInstance extends Thread{
     boolean run = true;
 
     // variables for Cmds
-    String serverDir = System.getProperty("user.dir") + File.separator +"src"+ File.separator +"server"+File.separator+"dir"; // default directory
-    boolean isRetrieve = false; //for RETR cmd
-    String fileName = ""; //for SEND cmd
+    String serverDir = System.getProperty("user.dir") + File.separator +"server"+File.separator+"dir"; // default directory
 
     // Create account object to manage Accounts
     Accounts accounts = new Accounts();
 
-
-    String cmd;
-
     //Data Streams for ASCII and Binary
     BufferedReader inFromClient;
     DataOutputStream outToClient;
-    DataInputStream binFromClient;
-    DataOutputStream binToClient;
-
-    // Variables for admin usage
-    long mbSent = 0;
 
     ServerInstance(Socket socket) throws IOException {
         this.socket = socket;
 
         try {
             socket.setReuseAddress(true);
-            this.binToClient = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            this.binFromClient = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-
             this.inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.outToClient = new DataOutputStream(socket.getOutputStream());
 
-            System.out.println("Server instance created...");
-            sendToClient("Server Connected...");
-            System.out.println("FROM Client: "+ readFromClient());
+            System.out.println("Server Instance Created");
+            sendToClient("(listening for connection)");
+            System.out.println(readFromClient());
         } catch (Exception e) {
             e.printStackTrace();
             socket.close();
@@ -71,67 +57,38 @@ public class ServerInstance extends Thread{
                         cmd = new String[]{cmd[0],cmd[1], ""};
                     }
 
-                System.out.println(accounts.checkLogin());
                 // remember to revert this to !accounts
-                if(accounts.checkLogin()) {
+                if(!accounts.checkLogin()) {
                     switch (cmd[0]) {
-                        case "USER":
-                            user(cmd[1]);
-                            //auth("ACCT",commandArgs);
-                            break;
-                        case "ACCT":
-                            acct(cmd[1], true);
-                            //auth("ACCT",commandArgs);
-                            break;
-                        case "PASS":
-                            pass(cmd[1], true);
-                            // auth("PASS",commandArgs);
-                            break;
-                        default:
-                            System.out.println(cmd[0]);
-                            sendToClient("-Please Login");
+                        case "USER" -> user(cmd[1]);
+                        case "ACCT" -> acct(cmd[1], true);
+                        case "PASS" -> pass(cmd[1], true);
+                        case "DONE" -> done();
+                        // auth("PASS",commandArgs);
+                        default -> sendToClient("-Please Login");
                     }
-                }else{
-                        switch (cmd[0]) {
-                            case "USER":
-                                user(cmd[1]);
-                                //auth("ACCT",commandArgs);
-                                break;
-                            case "ACCT":
-                                acct(cmd[1], true);
-                                //auth("ACCT",commandArgs);
-                                break;
-                            case "PASS":
-                                pass(cmd[1], true);
-                                // auth("PASS",commandArgs);
-                                break;
-                            case "DONE":
-                                done();
-                                break;
-                            case "TYPE":
-                                type(cmd[1]);
-                                break;
-                            case "LIST":
-                                list(cmd[1], cmd[2]);
-                                break;
-                            case "CDIR":
-                                cdir(cmd[1]);
-                                break;
-                            case "KILL":
-                                kill(cmd[1]);
-                                break;
-                            case "NAME":
-                                name(cmd[1]);
-                                break;
-                            case "RETR":
-                                retr(cmd[1]);
-                                break;
-                            case "STOR":
-                                stor(cmd[1],cmd[2]);
-                                break;
-                            default:
-                                System.out.println(cmd[0]);
-                                sendToClient("-Non RFC command");
+                }else {
+                    switch (cmd[0]) {
+                        case "USER" -> user(cmd[1]);
+
+                        //auth("ACCT",commandArgs);
+                        case "ACCT" -> acct(cmd[1], true);
+
+                        //auth("ACCT",commandArgs);
+                        case "PASS" -> pass(cmd[1], true);
+
+                        // auth("PASS",commandArgs);
+                        case "DONE" -> done();
+                        case "TYPE" -> type(cmd[1]);
+                        case "LIST" -> list(cmd[1], cmd[2]);
+                        case "CDIR" -> cdir(cmd[1]);
+                        case "KILL" -> kill(cmd[1]);
+                        case "NAME" -> name(cmd[1]);
+                        case "RETR" -> retr(cmd[1]);
+                        case "STOR" -> stor(cmd[1], cmd[2]);
+                        default -> {
+                            sendToClient("-Non RFC command");
+                        }
                     }
                 }
 
@@ -149,20 +106,21 @@ public class ServerInstance extends Thread{
         }
     }
 
+    /**
+     * Stors file at serverDirectory
+     * according to various types described
+     * @param storMode APP NEW OR OLD that is the type of storing of the file
+     * @param fileName NAME of file on client side
+     * @throws Exception if socket error
+     */
     private void  stor(String storMode, String fileName) throws Exception{
         String filePath =serverDir+ File.separator + fileName;
         File file = new File(filePath);
         if(file.exists()) {
             switch (storMode) {
-                case "NEW":
-                    sendToClient("+File exists, will create new generation of file");
-                    break;
-                case "OLD":
-                    sendToClient("+Will write over old file");
-                    break;
-                case "APP":
-                    sendToClient("+Will append to file");
-                    break;
+                case "NEW" -> sendToClient("+File exists, will create new generation of file");
+                case "OLD" -> sendToClient("+Will write over old file");
+                case "APP" -> sendToClient("+Will append to file");
             }
         }else{
             if(storMode.equals("NEW")){
@@ -178,15 +136,9 @@ public class ServerInstance extends Thread{
             String[] cmd = readFromClient().split(" ");
             if (cmd[0].equals("SIZE")) {
                 int numOfBytes = Integer.parseInt(cmd[1]);
-
-                int actualByteSize = inFromClient.read(); //read size of file to be sent from client
+                int actualByteSize = Integer.parseInt(readFromClient()); //read size of file to be sent from client
                 if (numOfBytes > actualByteSize) { //if requested size to be stored is greater than the size of the actual file set size variable to be recieved as actual file size
                     numOfBytes= actualByteSize;
-                }
-
-                if(numOfBytes > getRuntime().getRuntime().freeMemory()){
-                    sendToClient("-Not enough room, don't send it");
-                    return;
                 }
                 byte[] inBytes = new byte[numOfBytes];
                 for (int i = 0; i < numOfBytes; i++) {
@@ -203,12 +155,10 @@ public class ServerInstance extends Thread{
                     filePath = filePath + fileName;
                     createdFile = new FileOutputStream(filePath);
                 }else if(file.exists() && storMode.equals("APP")){// If file exists append
-                    System.out.println(filePath);
                     createdFile = new FileOutputStream(filePath,true);
                 }else{
                     createdFile = new FileOutputStream(filePath);
                 }
-                System.out.println(createdFile);
                 createdFile.write(inBytes);
                 createdFile.close();
                 sendToClient("+Saved " + "<" + fileName + ">");
@@ -220,11 +170,11 @@ public class ServerInstance extends Thread{
      *
      * @param s V for verbose or F
      * @param dirPathFromRoot directory, if null uses current server dir
-     * @throws Exception
+     * @throws Exception if socket error
      */
     private void list(String s, String dirPathFromRoot) throws  Exception{
-        String dir = "";
-        if(s == null || s.equals("")){
+        String dir;
+        if(dirPathFromRoot == null || dirPathFromRoot.equals("")){
             dir = serverDir;
         }else{
             dir = serverDir + File.separator + dirPathFromRoot;
@@ -244,16 +194,17 @@ public class ServerInstance extends Thread{
                 .map(Path::toFile)
                 .collect(Collectors.toList());
         sendToClient("+" + dir + " <"+accounts.getUser()+">");
+
         if (s.equals("F")) {
-            for (int i = 0; i < files.size(); i++) {
-                sendToClient(files.get(i).getName());
+            for (File value : files) {
+                sendToClient(value.getName());
             }
         }
         if (s.equals("V")) {
-            for (int i = 0; i < files.size(); i++) {
-                long fileSize = files.get(i).length();
-                java.util.Date date = new java.util.Date(files.get(i).lastModified());
-                sendToClient(files.get(i).getName() + ": " + date + ": " + fileSize  + ": " + accounts.getUser());
+            for (File value : files) {
+                long fileSize = value.length();
+                Date date = new Date(value.lastModified());
+                sendToClient(value.getName() + ": " + date + ": " + fileSize + ": " + accounts.getUser());
             }
         }
         sendToClient("");
@@ -263,7 +214,7 @@ public class ServerInstance extends Thread{
      * Transfers specified file from
      * server to client dir if it exists
      * @param s file name
-     * @throws Exception
+     * @throws Exception if socket error
      */
     private void retr(String s) throws Exception{
         String retrievePath =serverDir+ File.separator + s;
@@ -274,7 +225,6 @@ public class ServerInstance extends Thread{
             String content = new String(bytes);
 
             //remember to delete this debugging only
-            System.out.println("Content: " + content);
             int byteSize = content.getBytes().length;
             sendToClient(byteSize + "");
 
@@ -303,7 +253,7 @@ public class ServerInstance extends Thread{
     /**
      * Kills specified file
      * @param s suplementry directory
-     * @throws Exception
+     * @throws Exception if socket error
      */
     private void kill(String s) throws Exception{
         File file = new File(serverDir + File.separator + s );
@@ -317,7 +267,7 @@ public class ServerInstance extends Thread{
     /**
      * renames file if exists
      * @param s directed directory
-     * @throws Exception
+     * @throws Exception if socket error
      */
     public void name(String s) throws  Exception{
         File file = new File(serverDir + File.separator + s);
@@ -328,7 +278,7 @@ public class ServerInstance extends Thread{
                 sendToClient("Please send TOBE followed by the new name");
                 String[] cmd = readFromClient().split(" ");
                 if(cmd[0].equals("TOBE")) {
-                    if (cmd[1] != "") {
+                    if (!cmd[1].equals("")) {
                         File fileRename = new File(serverDir + File.separator + cmd[1]);
                         file.renameTo(fileRename);
                         sendToClient("+" + file + " renamed to " + fileRename);
@@ -347,47 +297,27 @@ public class ServerInstance extends Thread{
      * changes server directory
      * ROOT reverts it to root
      * @param s directory
-     * @throws Exception
+     * @throws Exception if socket error
      */
     public void cdir(String s) throws Exception{
-        String dir = "";
         if(s.equals("ROOT")){
-            dir = System.getProperty("user.dir") + File.separator +"src"+ File.separator +"server"+File.separator+"dir"; // default directory
+            serverDir = System.getProperty("user.dir") + File.separator +"server"+File.separator+"dir"; // default directory
         }else{
-            dir = serverDir + File.separator + s;
+            serverDir = serverDir + File.separator + s;
         }
-        serverDir = dir;
-        File file = new File(dir);
+        File file = new File(serverDir);
         if (!file.isDirectory()){
-            sendToClient("-Can't connect to directory because: Invalid Directory-" + dir);
+            sendToClient("-Can't connect to directory because: Invalid Directory-" + serverDir);
             return;
         }
-        // checks for restricted directories
-//        if(s == "userAccounts" && !accounts.checkLogin()){
-//            sendToClient("+directory ok, send account/password");
-//            while(!accounts.checkLogin()) {
-//                String[] cmd = readFromClient().split(" ");
-//                while (cmd[0] != "ACCT" || cmd[0] != "PASS") {
-//                    cmd = readFromClient().split(" ");
-//                }
-//                switch(cmd[0]){
-//                    case "ACCT":
-//                        acct(cmd[1],"CDIR");
-//                    case "PASS":
-//                        pass(cmd[1],"CDIR");
-//                }
-//            }
-//
-//        }
-        serverDir = dir;
-        sendToClient("!Changed working dir to " + dir);
+        sendToClient("!Changed working dir to " + serverDir);
     }
 
     /**
      *  takes in command and returns based
      *  on account authentication
      * @param s accountName
-     * @throws Exception
+     * @throws Exception if socket error
      */
     public void acct(String s, boolean forLogin) throws Exception{
         if(forLogin) {
@@ -444,7 +374,6 @@ public class ServerInstance extends Thread{
      * @throws Exception socket error
      */
      private void type(String s) throws Exception {
-         System.out.println(s);
          switch (s) {
              case "A" -> sendToClient("+Using Ascii mode");
              case "B" -> sendToClient("+Using Binary mode");
@@ -459,8 +388,9 @@ public class ServerInstance extends Thread{
      * @throws Exception which will close server anyway
      */
     private void done() throws Exception {
-        sendToClient("+Closing connection. A total of " + mbSent/1000 + "kB was transferred.\n");
-        System.out.println("Server instance closed <>");
+        System.out.println("Instance Closed");
+        accounts.selectUser("LOGGED OUT");
+        sendToClient("+Closing connection.\n");
         socket.close();
         run = false;
     }
