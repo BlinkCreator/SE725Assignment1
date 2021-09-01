@@ -4,7 +4,7 @@ UOA ID: 601131649
 <br>
 ## SE725 Assignment 1
 The following code is an implementation of a simple file transfered specified in A [RFC913](https://datatracker.ietf.org/doc/html/rfc913)
-
+The server/client were deemed to be working if all inputs/outputs are described in [RFC913](https://datatracker.ietf.org/doc/html/rfc913)
 <br>
 The required files in the directory for all tests to function are: SE725Assignment1/<br>
 
