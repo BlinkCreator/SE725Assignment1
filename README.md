@@ -2,10 +2,10 @@
 UPI: moco657
 UOA ID: 601131649
 <br>
-## SE725 Assignment 1
+## Project Overview:
 The following code is an implementation of a simple file transfered specified in A [RFC913](https://datatracker.ietf.org/doc/html/rfc913)
 The server/client were deemed to be working if all inputs/outputs are described in [RFC913](https://datatracker.ietf.org/doc/html/rfc913)
-<br>
+## Project Structure:
 The required files in the directory for all tests to function are: SE725Assignment1/<br>
 
 ```
@@ -36,13 +36,13 @@ The required files in the directory for all tests to function are: SE725Assignme
 ```
 
 
-## Using Server and Client
+## Using Server and Client:
 To use navigate to the directory src/testScripts/ <br>
 1. Open terminal in this folder.
 2. Run ServerTest with `./ServerTest.sh` in console
 3. Run ClientTest with `./ClientTest.sh` in console
 4. Perform any commands according to [RFC913](https://datatracker.ietf.org/doc/html/rfc913) documentation.
-## Testing
+## Testing:
 To test navigate to the directory src/testScripts/ <br>
 1. Open terminal in this folder.
 2. Run ServerTest with `./ServerTest.sh` in console
