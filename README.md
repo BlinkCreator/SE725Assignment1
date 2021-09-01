@@ -11,11 +11,21 @@ The following code is an implementation of a simple file transfered specified in
 
 
 
-## Testing & Use
-To use navigate to the directory src/
-
-The following test cases are covered by running the AutoClientTest.sh
+## Using Server and Client
+To use navigate to the directory src/testScripts/ <br>
+1. Open terminal in this folder.
+2. Run ServerTest with ./ServerTest.sh in console
+3. Run ClientTest with ./ClientTest.sh in console
+4. Perform any commands according to [RFC913](https://datatracker.ietf.org/doc/html/rfc913) documentation.
 <br>
+## Testing
+To test navigate to the directory src/testScripts/ <br>
+1. Open terminal in this folder.
+2. Run ServerTest with ./ServerTest.sh in console
+3. Run AutomatedClientTest with ./AutomatedClientTest.sh in console
+<br>
+
+### The following test cases are covered by running the AutoClientTest.sh
 1. Successful log in then DONE
 2. Failed log in, then true log in, then change user, then DONE
 3. Attempt to change TYPE before log in, then log in, then change TYPE, then DONE
