@@ -28,8 +28,7 @@ PASS 1
 ACCT account1
 DONE
 EOF
-${L_GREEN}
-echo '✔ log in successful'
+echo -e "${L_GREEN}✔ log in successful"
 echo -e "${RESET}"
 echo -e ""
 echo -e "2. Failed log in, then true log in, then change user, then DONE"
@@ -59,7 +58,7 @@ ACCT account2
 ACCT account1
 DONE
 EOF
-${L_GREEN}
+echo -e "${L_GREEN}"
 echo '✔ Failed log in due to wrong account'
 echo -e "${RESET}"
 
@@ -84,7 +83,7 @@ ACCT account2
 TYPE B
 DONE
 EOF
-${L_GREEN}
+echo -e "${L_GREEN}"
 echo '✔ Command rejected because user is not authenticated'
 echo -e "${RESET}"
 
@@ -114,7 +113,8 @@ LIST V subDir
 LIST V
 DONE
 EOF
-${L_GREEN}
+echo -e "${L_GREEN}"
+echo '✔ Command rejected because user is not authenticated'
 echo '✔ LIST command with both F and V successful'
 echo '✔ Directory changed when supplied by LIST cmd'
 echo -e "${RESET}"
@@ -166,7 +166,7 @@ SIZE 200
 KILL OneOne.txt
 DONE
 EOF
-${L_GREEN}
+echo -e "${L_GREEN}"
 echo '✔ "-File does not exist" on directory that doesnotexist'
 echo '✔ Successful rename with 1 to OneOne'
 echo '✔ Successful Retr of OneOne.txt'
