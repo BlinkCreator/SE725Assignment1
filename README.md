@@ -11,7 +11,8 @@ The following code is an implementation of a simple file transfered specified in
 
 
 
-
+## Testing & Use
+To use navigate to the directory src/
 
 The following test cases are covered by running the AutoClientTest.sh
 <br>
@@ -19,4 +20,4 @@ The following test cases are covered by running the AutoClientTest.sh
 2. Failed log in, then true log in, then change user, then DONE
 3. Attempt to change TYPE before log in, then log in, then change TYPE, then DONE
 4. Log in, LIST Formated base dir, then LIST Verbose subDir, then LIST Formated current dir
-5. Log in, CDIR to subDir, LIST Verbose, rename 1.txt with NAME TOBE OneOne.txt, LIST Verbose, RETR OneOne.txt, KILL OneOne.txt, STOR NEW OneOne.txt, STOR APP OneOne.TXT LIST V, DONE
+5. Log in, CDIR to subDir, LIST Verbose, try to name doesnotexist, rename 1.txt with NAME TOBE OneOne.txt, LIST Verbose, RETR OneOne.txt, KILL OneOne.txt, STOR NEW OneOne.txt, STOR APP OneOne.TXT LIST V, STOR NEW 1.txt, KILL OneOne.txt, LIST V, DONE
